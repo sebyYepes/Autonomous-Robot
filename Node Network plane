@@ -1,0 +1,103 @@
+🧩 Node-by-Node Breakdown
+🔹 1. slam_toolbox (or map_server)
+Function: Builds a map of the environment in real time (SLAM), or loads a static map.
+
+Input: /scan from LiDAR
+
+Output: /map (occupancy grid)
+
+Topics:
+
+sensor_msgs/msg/LaserScan → /scan
+
+nav_msgs/msg/OccupancyGrid → /map
+
+🔹 2. amcl (or slam_toolbox)
+Function: Localizes robot in the map using particle filtering.
+
+Input: /map, /scan, /odom
+
+Output: /amcl_pose (current pose estimate)
+
+Topics:
+
+nav_msgs/msg/Odometry → /odom
+
+geometry_msgs/msg/PoseWithCovarianceStamped → /amcl_pose
+
+🔹 3. planner_server (Global Planner)
+Function: Computes a path from current pose to goal
+
+Input: /goal_pose, /map
+
+Output: /plan
+
+Topics:
+
+geometry_msgs/msg/PoseStamped → /goal_pose
+
+nav_msgs/msg/Path → /plan
+
+🔹 4. controller_server (Local Planner)
+Function: Converts the global path into velocity commands
+
+Input: /plan, costmaps, /odom
+
+Output: /cmd_vel
+
+Topics:
+
+geometry_msgs/msg/Twist → /cmd_vel
+
+🔹 5. bt_navigator (Behavior Tree)
+Function: Sequences actions (e.g. plan → control → feedback)
+
+Input: Goal pose
+
+Output: Triggers planner & controller
+
+Topics:
+
+geometry_msgs/msg/PoseStamped → /goal_pose
+
+🔹 6. Nav2 Lifecycle Manager
+Function: Brings up the entire Nav2 system and manages states.
+
+Input/Output: Lifecycle service calls
+
+Topics: N/A (mostly internal services)
+
+🔹 7. robot_state_publisher + tf2
+Function: Publishes coordinate transforms (tf)
+
+Input: urdf robot model
+
+Output: tf tree (odom → base_link → laser)
+
+🔹 8. Arduino Motor Controller
+Function: Reads /cmd_vel and drives motors
+
+Input: geometry_msgs/msg/Twist from /cmd_vel
+
+Output: (optional) /odom
+
+Communication: Via serial or micro-ROS
+
+🔹 9. RViz2
+Function: Visualizes robot, map, path, and allows goal setting
+
+Input: /map, /tf, /odom, /scan, /cmd_vel
+
+Output: Sends /goal_pose
+
+
+
+🔌 Topic Summary
+Topic	Msg Type	Producer → Consumer
+/scan	sensor_msgs/msg/LaserScan	LiDAR → SLAM, costmap
+/map	nav_msgs/msg/OccupancyGrid	SLAM/Map server → Nav2
+/odom	nav_msgs/msg/Odometry	Arduino → Nav2
+/cmd_vel	geometry_msgs/msg/Twist	Nav2 → Arduino
+/goal_pose	geometry_msgs/msg/PoseStamped	RViz2 → Nav2 planner
+/amcl_pose	geometry_msgs/msg/PoseWithCovarianceStamped	AMCL → Nav2
+/tf	tf2_msgs/msg/TFMessage	robot_state_publisher
